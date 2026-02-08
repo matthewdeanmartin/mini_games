@@ -38,14 +38,23 @@ class MainScene extends Phaser.Scene {
 
     create() {
         // Background and World
-        this.add.tileSprite(0, 0, CONFIG.finishLineX + 2000, 600, 'pool').setOrigin(0, 0);
-        // this.add.tileSprite(0, 0, CONFIG.finishLineX + 1000, 600, 'pool').setOrigin(0, 0);
 
-        // Setup Players
-        this.p1 = this.createPlayer('Red', 150, 'red', {
+        // We set the origin to (0,0) and the tile position to match the top of the screen
+        const poolBg = this.add.tileSprite(0, 0, CONFIG.finishLineX + 2000, 600, 'pool').setOrigin(0, 0);
+        const poolImage = this.textures.get('pool').getSourceImage();
+        const scaleFactor = 600 / poolImage.height;
+        poolBg.setTileScale(scaleFactor, scaleFactor);
+
+        // 2. Center Players in the Blue Lanes
+        // Based on your daughter's art, the blue water is in the middle third of the image.
+        // We'll adjust the 'y' values to align them with the lanes.
+        // P1 (Red) in the top-most blue lane
+        this.p1 = this.createPlayer('Red', 90, 'red', {
             up: 'W', left: 'A', down: 'S', right: 'D'
         });
-        this.p2 = this.createPlayer('Blue', 350, 'blue', {
+
+        // P2 (Blue) in the second blue lane
+        this.p2 = this.createPlayer('Blue', 170, 'blue', {
             up: 'I', left: 'J', down: 'K', right: 'L'
         });
 
@@ -57,10 +66,21 @@ class MainScene extends Phaser.Scene {
         this.createFinishLine();
 
         // HUD Text
-        this.instructionText = this.add.text(20, 10,
-            "P1: [W] Breathe, [A/D] Stroke, [S] Kick | P2: [I] Breathe, [J/L] Stroke, [K] Kick",
-            { fontSize: '16px', fill: '#fff', backgroundColor: '#000000aa', padding: 5 });
-        this.instructionText.setScrollFactor(0);
+        // this.instructionText = this.add.text(20, 10,
+        //     "P1: [W] Breathe, [A/D] Stroke, [S] Kick | P2: [I] Breathe, [J/L] Stroke, [K] Kick",
+        //     { fontSize: '16px', fill: '#fff', backgroundColor: '#000000aa', padding: 5 });
+        // this.instructionText.setScrollFactor(0);
+
+        this.instructionText = this.add.text(20, 85,
+    "P1: [W] Breathe, [A/D] Stroke, [S] Kick | P2: [I] Breathe, [J/L] Stroke, [K] Kick",
+    {
+        fontSize: '16px',
+        fill: '#ffffff',
+        backgroundColor: '#000000aa', // Semi-transparent black
+        padding: { x: 10, y: 5 }
+    });
+this.instructionText.setScrollFactor(0);
+this.instructionText.setDepth(10); // Keeps it above the finish line
     }
 
     createPlayer(name, y, color, keys) {
@@ -113,7 +133,15 @@ class MainScene extends Phaser.Scene {
             graphics.fillRect(x, y, 20, 20);
             graphics.fillRect(x + 20, y + 20, 20, 20);
         }
-        this.add.text(x - 80, 50, "FINISH", { fontSize: '32px', fontStyle: 'bold' });
+        //this.add.text(x - 80, 50, "FINISH", { fontSize: '32px', fontStyle: 'bold' });
+        this.add.text(x - 80, 50, "FINISH", {
+            fontSize: '32px',
+            fontStyle: 'bold',
+            fill: '#ffffff',            // White text
+            stroke: '#000000',          // Black outline
+            strokeThickness: 6,         // Thickness of the outline
+            backgroundColor: '#000000'  // Optional: solid black box behind text
+        });
     }
 
     update(time, delta) {
