@@ -1,354 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Yes or No Kingdom</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eloise’s Mini Game Arcade</title>
     <style>
-        body {
+        :root{
+            --bg: #2c3e50;
+            --panel: #34495e;
+            --text: #ecf0f1;
+            --accent: #f1c40f;
+            --accent2: #2ecc71;
+            --danger: #e74c3c;
+            --shadow: rgba(0,0,0,0.5);
+            --muted: rgba(236,240,241,0.75);
+            --dark: #222;
+            --wood: #5d4037;
+            --sky: #87CEEB;
+        }
+
+        * { box-sizing: border-box; }
+
+        body{
             font-family: 'Courier New', Courier, monospace;
-            background-color: #2c3e50;
-            color: #ecf0f1;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
-        #game-container {
+        /* Header / Footer */
+        header, footer{
             width: 100%;
-            max-width: 600px;
-            background-color: #34495e;
-            border: 4px solid #f1c40f;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-        }
-
-        .stats-container {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            font-size: 14px;
+            justify-content: center;
+            padding: 16px;
         }
-        .stat-box {
-            width: 30%;
-            text-align: center;
-        }
-        .bar-container {
-            height: 15px;
-            background-color: #222;
-            border-radius: 5px;
-            margin-top: 5px;
-            overflow: hidden;
-        }
-        .bar-fill {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        #happiness-bar { background-color: #2ecc71; width: 50%; }
-        #anger-bar { background-color: #e74c3c; width: 10%; }
-        #money-bar { background-color: #f1c40f; width: 50%; }
 
-        #window-frame {
-            border: 8px solid #5d4037;
-            background-color: #87CEEB;
-            height: 150px;
-            margin-bottom: 20px;
+        .header-inner, .footer-inner{
+            width: 100%;
+            max-width: 780px;
+            background: var(--panel);
+            border: 4px solid var(--accent);
+            border-radius: 10px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 20px var(--shadow);
+        }
+
+        .header-top{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .title{
+            font-size: 18px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .title .badge{
+            border: 2px solid var(--accent);
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 12px;
+            color: var(--accent);
+            background: rgba(0,0,0,0.15);
+        }
+
+        .sub{
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .header-controls{
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="search"]{
+            appearance: none;
+            border: 2px solid rgba(241,196,15,0.65);
+            background: rgba(0,0,0,0.18);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: inherit;
+            outline: none;
+            width: min(320px, 72vw);
+        }
+        input[type="search"]::placeholder{ color: rgba(236,240,241,0.6); }
+
+        button.small{
+            border: none;
+            border-radius: 8px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            background: var(--accent2);
+            color: #0b2b18;
+            font-weight: 700;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        button.small:active{ transform: scale(0.97); }
+
+        /* Main panel */
+        main{
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 0 16px 24px;
+        }
+
+        #menu-container{
+            width: 100%;
+            max-width: 780px;
+            background: var(--panel);
+            border: 4px solid var(--accent);
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 10px 20px var(--shadow);
+        }
+
+        /* Window vibe banner */
+        .window-frame{
+            border: 8px solid var(--wood);
+            background-color: var(--sky);
+            height: 130px;
+            border-radius: 6px;
+            margin-bottom: 16px;
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: flex-end;
             justify-content: center;
         }
-        #town-visuals {
-            font-size: 40px;
-            line-height: 40px;
-            white-space: nowrap;
-        }
-        .sun {
+        .sun{
             position: absolute;
             top: 10px;
-            right: 10px;
-            font-size: 30px;
+            right: 12px;
+            font-size: 28px;
+        }
+        .town{
+            font-size: 38px;
+            line-height: 38px;
+            white-space: nowrap;
+            filter: drop-shadow(1px 1px 0px #000);
+            padding-bottom: 8px;
         }
 
-        #character-area {
-            text-align: center;
-            min-height: 220px;
+        /* Grid of games */
+        .grid{
+            display: grid;
+            grid-template-columns: repeat( auto-fit, minmax(240px, 1fr) );
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .card{
+            border: 3px solid rgba(241,196,15,0.8);
+            border-radius: 10px;
+            background: rgba(0,0,0,0.15);
+            padding: 14px;
             display: flex;
             flex-direction: column;
+            gap: 10px;
+            min-height: 170px;
+        }
+
+        .card-top{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .card h2{
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+        }
+
+        .pill{
+            border: 2px solid rgba(236,240,241,0.35);
+            color: rgba(236,240,241,0.85);
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 12px;
+            white-space: nowrap;
+            background: rgba(0,0,0,0.12);
+        }
+
+        .desc{
+            margin: 0;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.35;
+            min-height: 38px;
+        }
+
+        .card-actions{
+            margin-top: auto;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        a.btn{
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-        }
-        
-        /* Styles for your drawings */
-        #char-image { 
-            height: 120px; 
-            margin-bottom: 10px; 
-            filter: drop-shadow(2px 2px 0px #000); /* Makes black/white sketches pop */
-        }
-
-        #dialogue-text { font-size: 18px; line-height: 1.4; min-height: 60px; }
-        #feedback-text { 
-            font-size: 14px; 
-            color: #f1c40f; 
-            margin-top: 10px; 
-            font-style: italic;
-            min-height: 20px;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 20px;
-        }
-        button {
-            padding: 15px 40px;
-            font-size: 20px;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-weight: 700;
             border: none;
-            border-radius: 5px;
             cursor: pointer;
             font-family: inherit;
             transition: transform 0.1s;
+            user-select: none;
         }
-        button:active { transform: scale(0.95); }
-        #btn-yes { background-color: #27ae60; color: white; }
-        #btn-no { background-color: #c0392b; color: white; }
+        a.btn:active{ transform: scale(0.97); }
+
+        .play{
+            background: var(--accent2);
+            color: #0b2b18;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .code{
+            background: rgba(0,0,0,0.2);
+            color: var(--text);
+            border: 2px solid rgba(241,196,15,0.45);
+            flex: 0;
+            white-space: nowrap;
+        }
+
+        .empty{
+            border: 3px dashed rgba(241,196,15,0.6);
+            border-radius: 10px;
+            padding: 16px;
+            color: rgba(236,240,241,0.8);
+            text-align: center;
+            background: rgba(0,0,0,0.12);
+        }
+
+        /* Footer */
+        .footer-inner{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: rgba(236,240,241,0.75);
+            font-size: 12px;
+        }
+
+        .footer-links{
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .footer-links a{
+            color: var(--accent);
+            text-decoration: none;
+            border-bottom: 1px dashed rgba(241,196,15,0.7);
+        }
+        .footer-links a:hover{
+            border-bottom-style: solid;
+        }
+
+        /* Small helper text */
+        .hint{
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(236,240,241,0.7);
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div class="stats-container">
-            <div class="stat-box">
-                <div>Happiness</div>
-                <div class="bar-container"><div id="happiness-bar" class="bar-fill"></div></div>
+<header>
+    <div class="header-inner">
+        <div class="header-top">
+            <div class="title">
+                🕹️ Eloise’s Mini Game Arcade
+                <span class="badge" id="count-badge">0 games</span>
             </div>
-            <div class="stat-box">
-                <div>Anger</div>
-                <div class="bar-container"><div id="anger-bar" class="bar-fill"></div></div>
-            </div>
-            <div class="stat-box">
-                <div>Money</div>
-                <div class="bar-container"><div id="money-bar" class="bar-fill"></div></div>
-                <div id="money-text">100 coins</div>
+
+            <div class="header-controls">
+                <input id="search" type="search" placeholder="Search games..." aria-label="Search games" />
+                <button class="small" id="randomBtn" type="button">🎲 Random</button>
             </div>
         </div>
 
-        <div id="window-frame">
-            <div class="sun">☀️</div>
-            <div id="town-visuals">🏠🏰🏠</div>
-        </div>
-
-        <div id="character-area">
-            <img id="char-image" src="king.png" alt="Character">
-            <div id="dialogue-text">Welcome, Your Majesty. The people are waiting.</div>
-            <div id="feedback-text"></div>
-        </div>
-
-        <div class="controls">
-            <button id="btn-yes" onclick="handleChoice(true)">YES</button>
-            <button id="btn-no" onclick="handleChoice(false)">NO</button>
+        <div class="sub" id="subtitle">
+            Pick a door. Cause a little chaos. Add more games later by editing one array. ✨
         </div>
     </div>
+</header>
 
-    <script>
-        let state = {
-            happiness: 50,
-            anger: 10,
-            money: 100,
-            townSize: 3,
-            gameOver: false
-        };
+<main>
+    <div id="menu-container">
+        <div class="window-frame" aria-hidden="true">
+            <div class="sun">☀️</div>
+            <div class="town" id="town">🏠🏰🏠🌲🏘️</div>
+        </div>
 
-        let flags = {
-            kidIsKnight: false,
-            dragonSlain: false,
-            knightQuestActive: false
-        };
+        <div class="grid" id="grid"></div>
 
-        let currentEvent = null;
+<!--        <div class="hint">-->
+<!--            Tip: each game is one object in <code>GAMES</code>. Path should be relative to <code>/docs/</code>.-->
+<!--        </div>-->
+    </div>
+</main>
 
-        function updateUI() {
-            state.happiness = Math.max(0, Math.min(100, state.happiness));
-            state.anger = Math.max(0, Math.min(100, state.anger));
-            state.money = Math.max(0, state.money);
-            state.townSize = Math.max(1, Math.min(15, state.townSize));
+<footer>
+    <div class="footer-inner">
+        <div>
+            © <span id="year"></span> Eloise • Built in pure HTML/CSS/JS • Product design & art human made. Code LLM generated.
+        </div>
+        <div class="footer-links" id="footerLinks">
+            <!-- Optional global links set in CONFIG below -->
+        </div>
+    </div>
+</footer>
 
-            document.getElementById('happiness-bar').style.width = state.happiness + '%';
-            document.getElementById('anger-bar').style.width = state.anger + '%';
-            document.getElementById('money-bar').style.width = Math.min(100, state.money / 5) + '%';
-            document.getElementById('money-text').innerText = state.money + " coins";
+<script>
+    /***********************
+     * CONFIG (edit this)
+     ***********************/
+    const CONFIG = {
+        siteTitle: "Matt’s Mini Game Arcade",
+        // Optional global links in footer (can be empty)
+        footerLinks: [
+            // { label: "GitHub", href: "https://github.com/yourname/yourrepo" },
+            // { label: "About", href: "./about.html" },
+        ],
+        // Town banner emoji string (pure vibe control)
+        townBanner: "🏠🏰🏠🌲🏘️",
+    };
 
-            let townString = "🏰";
-            for(let i=0; i < state.townSize; i++) {
-                if(i % 3 === 0) townString += "🏠";
-                if(i % 3 === 1) townString += "🌲";
-                if(i % 3 === 2) townString += "🏘️";
-            }
-            document.getElementById('town-visuals').innerText = townString;
+    // Add games here. That’s it.
+    const GAMES = [
+        {
+            id: "yes_no",
+            title: "The Yes or No Kingdom",
+            description: "Rule by vibes. Choose YES or NO. Hope the kingdom survives.",
+            path: "./yes_no/index.html",
+            // Optional:
+            // github: "https://github.com/yourname/yourrepo/tree/main/docs/yes_no"
+            tag: "choices",
+            emoji: "👑",
+        },
+        {
+            id: "swimming",
+            title: "Swimming",
+            description: "A tiny swimming thing. (You know what it is.)",
+            path: "./swimming/index.html",
+            // Optional:
+            github: "https://github.com/matthewdeanmartin/swimming_game"
+            tag: "arcade",
+            emoji: "🏊",
+        },
+        {
+            id: "pet",
+            title: "Pets",
+            description: "Take care of your pet!",
+            path: "./pet/index.html",
+            github: "https://github.com/matthewdeanmartin/mini_games/pet"
+            tag: "animals",
+            emoji: "🐈",
+        },
+        {
+            id: "falling_food",
+            title: "Falling Food",
+            description: "Catch that food!",
+            path: "./falling_food/index.html",
+            // Optional:
+            github: "https://github.com/matthewdeanmartin/falling_food"
+            tag: "food",
+            emoji: "🫔",
+        },
+
+
+        // Example of adding a new one:
+        // {
+        //   id: "new_game",
+        //   title: "My New Game",
+        //   description: "One sentence pitch.",
+        //   path: "./new_game/index.html",
+        //   github: "https://github.com/you/repo/tree/main/docs/new_game",
+        //   tag: "prototype",
+        //   emoji: "✨",
+        // },
+    ];
+
+    /***********************
+     * RENDERING
+     ***********************/
+    const grid = document.getElementById("grid");
+    const search = document.getElementById("search");
+    const randomBtn = document.getElementById("randomBtn");
+    const badge = document.getElementById("count-badge");
+
+    // Header bits
+    document.title = CONFIG.siteTitle;
+    document.querySelector(".title").childNodes[2].textContent = " " + CONFIG.siteTitle + " ";
+    document.getElementById("town").textContent = CONFIG.townBanner;
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Footer links (optional)
+    const footerLinks = document.getElementById("footerLinks");
+    CONFIG.footerLinks.forEach(l => {
+        const a = document.createElement("a");
+        a.href = l.href;
+        a.textContent = l.label;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        footerLinks.appendChild(a);
+    });
+
+    function normalize(str){
+        return (str || "").toLowerCase().trim();
+    }
+
+    function matches(game, q){
+        if(!q) return true;
+        const hay = normalize(
+            `${game.id} ${game.title} ${game.description} ${game.tag || ""} ${game.emoji || ""}`
+        );
+        return hay.includes(q);
+    }
+
+    function render(list){
+        grid.innerHTML = "";
+
+        badge.textContent = `${list.length} game${list.length === 1 ? "" : "s"}`;
+
+        if(list.length === 0){
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            empty.innerHTML = `
+          <div style="font-size:18px; margin-bottom:6px;">No matches 😵‍💫</div>
+          <div style="font-size:13px; opacity:0.9;">
+            Try a different search… or add a new game in the <code>GAMES</code> array.
+          </div>
+        `;
+            grid.appendChild(empty);
+            return;
         }
 
-        const events = [
-            {
-                id: 'cat',
-                image: 'cat.png',
-                text: "A black cat comes up to you and says 'Meowww'. You think it's hungry.",
-                yes: () => {
-                    state.happiness += 10;
-                    return "The cat purrs and rubs against your leg. It seems to bring good luck!";
-                },
-                no: () => "The cat hisses aggressively and runs away."
-            },
-            {
-                id: 'wizard',
-                image: 'wizard.png',
-                text: "A wizard appears. 'Pick Yes or No,' he says mysteriously.",
-                yes: () => {
-                    state.money += 100;
-                    return "Poof! A bag of 100 coins appears in your lap!";
-                },
-                no: () => {
-                    state.townSize = Math.max(1, state.townSize - 2);
-                    state.anger += 20;
-                    state.happiness -= 20;
-                    return "Thunder strikes! Half your town gets destroyed!";
-                }
-            },
-            {
-                id: 'kid',
-                image: 'kid.png',
-                text: "A young kid asks if he can be a Knight.",
-                yes: () => {
-                    flags.kidIsKnight = true;
-                    state.happiness += 15;
-                    state.townSize += 1;
-                    return "The kid is overjoyed! He protects the town, helping it grow.";
-                },
-                no: () => {
-                    state.happiness -= 10;
-                    return "The kid walks away crying. The people look sad.";
-                }
-            },
-            {
-                id: 'mom',
-                image: 'mom.png',
-                text: "A worried mom asks: 'Did you see a 7-year-old boy? He wanted to be a knight. Did he come here?'",
-                yes: () => {
-                    if(flags.kidIsKnight) {
-                        state.money += 50;
-                        state.happiness += 10;
-                        return "She sees her son in shining armor! She donates 50 coins in gratitude.";
-                    } else {
-                        state.money += 10;
-                        return "You point the way. She thanks you and gives you 10 coins.";
-                    }
-                },
-                no: () => {
-                    state.anger += 10;
-                    return "She leaves looking frantic and disappointed.";
-                }
-            },
-            {
-                id: 'giant',
-                image: 'giant.png',
-                text: "A giant looms over the window. He mumbles: 'Do zou wamt pzowrm?' You can barely hear him.",
-                yes: () => {
-                    state.money += 50;
-                    state.happiness += 10;
-                    state.townSize += 1;
-                    state.anger -= 10;
-                    return "He was offering a gift! He builds a new house and gives you gold.";
-                },
-                no: () => {
-                    state.anger += 5;
-                    return "The giant shrugs sadly and shakes the ground as he walks away.";
-                }
-            },
-            {
-                id: 'rival',
-                image: 'otherking.png',
-                text: "A neighboring King asks: 'Can I have some money? My town is doing bad.'",
-                yes: () => {
-                    state.money -= 150;
-                    state.happiness += 5;
-                    return "You gave him 150 coins. You feel generous, but your treasury hurts.";
-                },
-                no: () => {
-                    state.anger += 10;
-                    return "He screams: 'I WILL GET MY REVENGE!!!' and storms off.";
-                }
-            },
-            {
-                id: 'witch',
-                image: 'witch.png',
-                text: "A witch cackles: 'I will put a curse on this town if you don't say Yes to me! Mwahaha!'",
-                yes: () => {
-                    state.money -= 50;
-                    return "She steals 50 coins from your treasury but leaves the town alone.";
-                },
-                no: () => {
-                    state.townSize -= 1;
-                    state.happiness -= 20;
-                    return "She casts a shrinking spell! Some houses vanish into thin air.";
-                }
-            },
-            {
-                id: 'knight_start',
-                image: 'kight.png', // Using your sword drawing for the knight quest
-                text: "A knight asks if they can go slay the evil dragon.",
-                condition: () => !flags.knightQuestActive,
-                yes: () => {
-                    state.money -= 20;
-                    flags.knightQuestActive = true;
-                    return "You give him 20 coins for supplies. He rides off towards the mountain.";
-                },
-                no: () => {
-                    state.happiness -= 5;
-                    return "The knight looks sad. 'I will ask again another time,' he says.";
-                }
-            }
-        ];
+        list.forEach(game => {
+            const card = document.createElement("div");
+            card.className = "card";
 
-        function loadEvent() {
-            const availableEvents = events.filter(e => e.condition ? e.condition() : true);
-            currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+            const tagText = game.tag ? game.tag : "mini game";
+            const emoji = game.emoji ? game.emoji : "🎮";
 
-            // Set the image to your drawing
-            document.getElementById('char-image').src = currentEvent.image;
-            document.getElementById('dialogue-text').innerText = currentEvent.text;
-            document.getElementById('feedback-text').innerText = "";
-        }
+            card.innerHTML = `
+          <div class="card-top">
+            <div>
+              <h2>${emoji} ${escapeHtml(game.title)}</h2>
+            </div>
+            <div class="pill">${escapeHtml(tagText)}</div>
+          </div>
 
-        function handleChoice(isYes) {
-            if (!currentEvent) return;
-            let resultText = isYes ? currentEvent.yes() : currentEvent.no();
-            updateUI();
-            document.getElementById('feedback-text').innerText = resultText;
+          <p class="desc">${escapeHtml(game.description || "")}</p>
 
-            if (state.money < 0) {
-                document.getElementById('dialogue-text').innerText = "GAME OVER: The kingdom is bankrupt!";
-                document.getElementById('char-image').src = "otherking.png"; // Mad king for game over
-                disableButtons();
-                return;
-            }
+          <div class="card-actions">
+            <a class="btn play" href="${game.path}">▶ Play</a>
+            ${game.github ? `<a class="btn code" href="${game.github}" target="_blank" rel="noopener noreferrer">{" "}GitHub</a>` : ``}
+          </div>
+        `;
 
-            setTimeout(loadEvent, 2500);
-        }
+            grid.appendChild(card);
+        });
+    }
 
-        function disableButtons() {
-            document.getElementById('btn-yes').disabled = true;
-            document.getElementById('btn-no').disabled = true;
-            document.getElementById('btn-yes').style.opacity = 0.5;
-            document.getElementById('btn-no').style.opacity = 0.5;
-        }
+    function escapeHtml(str){
+        return String(str)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
 
-        updateUI();
-        loadEvent();
-    </script>
+    function currentFiltered(){
+        const q = normalize(search.value);
+        return GAMES.filter(g => matches(g, q));
+    }
+
+    search.addEventListener("input", () => render(currentFiltered()));
+
+    randomBtn.addEventListener("click", () => {
+        const list = currentFiltered();
+        if(list.length === 0) return;
+        const pick = list[Math.floor(Math.random() * list.length)];
+        window.location.href = pick.path;
+    });
+
+    // Initial render
+    render(GAMES);
+</script>
 </body>
 </html>

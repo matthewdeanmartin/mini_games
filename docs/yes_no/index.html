@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Yes or No Kingdom</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #34495e;
+            border: 4px solid #f1c40f;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .stat-box {
+            width: 30%;
+            text-align: center;
+        }
+        .bar-container {
+            height: 15px;
+            background-color: #222;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        #happiness-bar { background-color: #2ecc71; width: 50%; }
+        #anger-bar { background-color: #e74c3c; width: 10%; }
+        #money-bar { background-color: #f1c40f; width: 50%; }
+
+        #window-frame {
+            border: 8px solid #5d4037;
+            background-color: #87CEEB;
+            height: 150px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        #town-visuals {
+            font-size: 40px;
+            line-height: 40px;
+            white-space: nowrap;
+        }
+        .sun {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 30px;
+        }
+
+        #character-area {
+            text-align: center;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Styles for your drawings */
+        #char-image { 
+            height: 120px; 
+            margin-bottom: 10px; 
+            filter: drop-shadow(2px 2px 0px #000); /* Makes black/white sketches pop */
+        }
+
+        #dialogue-text { font-size: 18px; line-height: 1.4; min-height: 60px; }
+        #feedback-text { 
+            font-size: 14px; 
+            color: #f1c40f; 
+            margin-top: 10px; 
+            font-style: italic;
+            min-height: 20px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        #btn-yes { background-color: #27ae60; color: white; }
+        #btn-no { background-color: #c0392b; color: white; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="stats-container">
+            <div class="stat-box">
+                <div>Happiness</div>
+                <div class="bar-container"><div id="happiness-bar" class="bar-fill"></div></div>
+            </div>
+            <div class="stat-box">
+                <div>Anger</div>
+                <div class="bar-container"><div id="anger-bar" class="bar-fill"></div></div>
+            </div>
+            <div class="stat-box">
+                <div>Money</div>
+                <div class="bar-container"><div id="money-bar" class="bar-fill"></div></div>
+                <div id="money-text">100 coins</div>
+            </div>
+        </div>
+
+        <div id="window-frame">
+            <div class="sun">☀️</div>
+            <div id="town-visuals">🏠🏰🏠</div>
+        </div>
+
+        <div id="character-area">
+            <img id="char-image" src="king.png" alt="Character">
+            <div id="dialogue-text">Welcome, Your Majesty. The people are waiting.</div>
+            <div id="feedback-text"></div>
+        </div>
+
+        <div class="controls">
+            <button id="btn-yes" onclick="handleChoice(true)">YES</button>
+            <button id="btn-no" onclick="handleChoice(false)">NO</button>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            happiness: 50,
+            anger: 10,
+            money: 100,
+            townSize: 3,
+            gameOver: false
+        };
+
+        let flags = {
+            kidIsKnight: false,
+            dragonSlain: false,
+            knightQuestActive: false
+        };
+
+        let currentEvent = null;
+
+        function updateUI() {
+            state.happiness = Math.max(0, Math.min(100, state.happiness));
+            state.anger = Math.max(0, Math.min(100, state.anger));
+            state.money = Math.max(0, state.money);
+            state.townSize = Math.max(1, Math.min(15, state.townSize));
+
+            document.getElementById('happiness-bar').style.width = state.happiness + '%';
+            document.getElementById('anger-bar').style.width = state.anger + '%';
+            document.getElementById('money-bar').style.width = Math.min(100, state.money / 5) + '%';
+            document.getElementById('money-text').innerText = state.money + " coins";
+
+            let townString = "🏰";
+            for(let i=0; i < state.townSize; i++) {
+                if(i % 3 === 0) townString += "🏠";
+                if(i % 3 === 1) townString += "🌲";
+                if(i % 3 === 2) townString += "🏘️";
+            }
+            document.getElementById('town-visuals').innerText = townString;
+        }
+
+        const events = [
+            {
+                id: 'cat',
+                image: 'cat.png',
+                text: "A black cat comes up to you and says 'Meowww'. You think it's hungry.",
+                yes: () => {
+                    state.happiness += 10;
+                    return "The cat purrs and rubs against your leg. It seems to bring good luck!";
+                },
+                no: () => "The cat hisses aggressively and runs away."
+            },
+            {
+                id: 'wizard',
+                image: 'wizard.png',
+                text: "A wizard appears. 'Pick Yes or No,' he says mysteriously.",
+                yes: () => {
+                    state.money += 100;
+                    return "Poof! A bag of 100 coins appears in your lap!";
+                },
+                no: () => {
+                    state.townSize = Math.max(1, state.townSize - 2);
+                    state.anger += 20;
+                    state.happiness -= 20;
+                    return "Thunder strikes! Half your town gets destroyed!";
+                }
+            },
+            {
+                id: 'kid',
+                image: 'kid.png',
+                text: "A young kid asks if he can be a Knight.",
+                yes: () => {
+                    flags.kidIsKnight = true;
+                    state.happiness += 15;
+                    state.townSize += 1;
+                    return "The kid is overjoyed! He protects the town, helping it grow.";
+                },
+                no: () => {
+                    state.happiness -= 10;
+                    return "The kid walks away crying. The people look sad.";
+                }
+            },
+            {
+                id: 'mom',
+                image: 'mom.png',
+                text: "A worried mom asks: 'Did you see a 7-year-old boy? He wanted to be a knight. Did he come here?'",
+                yes: () => {
+                    if(flags.kidIsKnight) {
+                        state.money += 50;
+                        state.happiness += 10;
+                        return "She sees her son in shining armor! She donates 50 coins in gratitude.";
+                    } else {
+                        state.money += 10;
+                        return "You point the way. She thanks you and gives you 10 coins.";
+                    }
+                },
+                no: () => {
+                    state.anger += 10;
+                    return "She leaves looking frantic and disappointed.";
+                }
+            },
+            {
+                id: 'giant',
+                image: 'giant.png',
+                text: "A giant looms over the window. He mumbles: 'Do zou wamt pzowrm?' You can barely hear him.",
+                yes: () => {
+                    state.money += 50;
+                    state.happiness += 10;
+                    state.townSize += 1;
+                    state.anger -= 10;
+                    return "He was offering a gift! He builds a new house and gives you gold.";
+                },
+                no: () => {
+                    state.anger += 5;
+                    return "The giant shrugs sadly and shakes the ground as he walks away.";
+                }
+            },
+            {
+                id: 'rival',
+                image: 'otherking.png',
+                text: "A neighboring King asks: 'Can I have some money? My town is doing bad.'",
+                yes: () => {
+                    state.money -= 150;
+                    state.happiness += 5;
+                    return "You gave him 150 coins. You feel generous, but your treasury hurts.";
+                },
+                no: () => {
+                    state.anger += 10;
+                    return "He screams: 'I WILL GET MY REVENGE!!!' and storms off.";
+                }
+            },
+            {
+                id: 'witch',
+                image: 'witch.png',
+                text: "A witch cackles: 'I will put a curse on this town if you don't say Yes to me! Mwahaha!'",
+                yes: () => {
+                    state.money -= 50;
+                    return "She steals 50 coins from your treasury but leaves the town alone.";
+                },
+                no: () => {
+                    state.townSize -= 1;
+                    state.happiness -= 20;
+                    return "She casts a shrinking spell! Some houses vanish into thin air.";
+                }
+            },
+            {
+                id: 'knight_start',
+                image: 'kight.png', // Using your sword drawing for the knight quest
+                text: "A knight asks if they can go slay the evil dragon.",
+                condition: () => !flags.knightQuestActive,
+                yes: () => {
+                    state.money -= 20;
+                    flags.knightQuestActive = true;
+                    return "You give him 20 coins for supplies. He rides off towards the mountain.";
+                },
+                no: () => {
+                    state.happiness -= 5;
+                    return "The knight looks sad. 'I will ask again another time,' he says.";
+                }
+            }
+        ];
+
+        function loadEvent() {
+            const availableEvents = events.filter(e => e.condition ? e.condition() : true);
+            currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+
+            // Set the image to your drawing
+            document.getElementById('char-image').src = currentEvent.image;
+            document.getElementById('dialogue-text').innerText = currentEvent.text;
+            document.getElementById('feedback-text').innerText = "";
+        }
+
+        function handleChoice(isYes) {
+            if (!currentEvent) return;
+            let resultText = isYes ? currentEvent.yes() : currentEvent.no();
+            updateUI();
+            document.getElementById('feedback-text').innerText = resultText;
+
+            if (state.money < 0) {
+                document.getElementById('dialogue-text').innerText = "GAME OVER: The kingdom is bankrupt!";
+                document.getElementById('char-image').src = "otherking.png"; // Mad king for game over
+                disableButtons();
+                return;
+            }
+
+            setTimeout(loadEvent, 2500);
+        }
+
+        function disableButtons() {
+            document.getElementById('btn-yes').disabled = true;
+            document.getElementById('btn-no').disabled = true;
+            document.getElementById('btn-yes').style.opacity = 0.5;
+            document.getElementById('btn-no').style.opacity = 0.5;
+        }
+
+        updateUI();
+        loadEvent();
+    </script>
+</body>
+</html>
