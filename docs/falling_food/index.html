@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack & Serve - Restaurant Rush!</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style>
+        body { margin: 0; background-color: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        canvas { box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+    const config = {
+        type: Phaser.AUTO,
+        width: 1800,
+        height: 900,
+        backgroundColor: '#000000',
+        parent: 'game-container',
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: 0 }, debug: false }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    const game = new Phaser.Game(config);
+
+    // Game Variables
+    let state = 'MENU';
+    let playerData = {
+        character: "",
+        coins: 0,
+        unlocked_foods: ["toast", "burger", "egg", "sushi", "pizza", "banana"],
+        wrong_orders: 0
+    };
+
+    let plate, playerChar, cursor, spaceBar;
+    let foods, customers, stackedFoodItems = [];
+    let currentOrder = [];
+    let spawnTimer = 0;
+    let currentCustomer = null;
+    let patienceBar, patienceText;
+
+    // Constants from your source
+    const FOOD_SPAWN_INTERVAL = 1000; 
+    const STACKING_OVERLAP_FACTOR = 0.6;
+    const MAX_STACK = 5;
+
+    function preload() {
+        // Relative paths as requested
+        this.load.setPath('assets/');
+
+        // Backgrounds
+        this.load.image('menu_bg', 'backgrounds/menu_bg.png');
+        this.load.image('catching_bg', 'backgrounds/catching_bg.png');
+        this.load.image('serving_bg', 'backgrounds/serving_bg.png');
+
+        // UI & Characters
+        this.load.image('plate', 'ui/plate.png');
+        this.load.image('sam', 'characters/sam.png');
+        this.load.image('jack', 'characters/jack.png');
+        this.load.image('customer1', 'characters/customer1.png');
+        this.load.image('customer2', 'characters/customer2.png');
+
+        // Food
+        playerData.unlocked_foods.forEach(food => {
+            this.load.image(food, `food/${food}.png`);
+        });
+    }
+
+    function create() {
+        this.bg = this.add.image(900, 450, 'menu_bg').setDisplaySize(1800, 900);
+        cursors = this.input.keyboard.createCursorKeys();
+        spaceBar = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        
+        foods = this.physics.add.group();
+        setupMenu.call(this);
+    }
+
+    function setupMenu() {
+        state = 'MENU';
+        this.bg.setTexture('menu_bg');
+        
+        let title = this.add.text(900, 200, 'Stack & Serve', { fontSize: '80px', fill: '#000' }).setOrigin(0.5);
+        let startBtn = this.add.text(900, 400, 'Start Game', { fontSize: '40px', backgroundColor: '#888', padding: 10 })
+            .setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => selectCharacter.call(this));
+    }
+
+    function selectCharacter() {
+        this.children.removeAll();
+        this.bg = this.add.image(900, 450, 'menu_bg').setDisplaySize(1800, 900);
+        
+        this.add.text(900, 200, 'Choose Your Character', { fontSize: '60px', fill: '#000' }).setOrigin(0.5);
+        
+        ['sam', 'jack'].forEach((char, i) => {
+            let c = this.add.image(700 + (i * 400), 500, char).setScale(2).setInteractive({ useHandCursor: true });
+            c.on('pointerdown', () => {
+                playerData.character = char;
+                startRound.call(this);
+            });
+        });
+    }
+
+    function startRound() {
+        state = 'CATCHING';
+        this.children.removeAll();
+        this.bg = this.add.image(900, 450, 'catching_bg').setDisplaySize(1800, 900);
+        
+        // Setup Plate and Player
+        playerChar = this.add.image(900, 800, playerData.character).setScale(1.5);
+        plate = this.physics.add.image(900, 750, 'plate').setScale(0.8);
+        plate.setCollideWorldBounds(true);
+
+        // Generate Customer & Order
+        let orderSize = Phaser.Math.Between(1, 3);
+        currentOrder = Phaser.Utils.Array.GetRandom(playerData.unlocked_foods, orderSize);
+        if(!Array.isArray(currentOrder)) currentOrder = [currentOrder];
+
+        let custImg = Phaser.Math.Between(1, 2);
+        currentCustomer = this.add.sprite(1400, 750, `customer${custImg}`).setScale(1.5);
+        currentCustomer.patience = 100;
+
+        // UI Overlay
+        this.add.text(20, 20, `Strikes: ${playerData.wrong_orders}/3`, { fontSize: '30px', fill: '#f00' });
+        this.orderDisplay = this.add.text(900, 50, `Order: ${currentOrder.join(', ')}`, { fontSize: '40px', fill: '#000', backgroundColor: '#fff' }).setOrigin(0.5);
+        
+        // Patience Bar
+        patienceBar = this.add.graphics();
+    }
+
+    function update(time, delta) {
+        if (state === 'CATCHING') {
+            // Movement
+            if (cursors.left.isDown) plate.x -= 10;
+            else if (cursors.right.isDown) plate.x += 10;
+            playerChar.x = plate.x;
+
+            // Spawning
+            spawnTimer += delta;
+            if (spawnTimer > FOOD_SPAWN_INTERVAL) {
+                spawnFood.call(this);
+                spawnTimer = 0;
+            }
+
+            // Customer Patience
+            currentCustomer.patience -= 0.05; 
+            updatePatienceBar();
+
+            if (currentCustomer.patience <= 0) {
+                handleFail.call(this, "Customer lost patience!");
+            }
+
+            // Catching Logic
+            this.physics.overlap(plate, foods, (p, food) => {
+                if (stackedFoodItems.length < MAX_STACK) {
+                    food.body.stop();
+                    food.body.enable = false;
+                    stackedFoodItems.push(food);
+                } else {
+                    food.destroy();
+                }
+            });
+
+            // Update stack positions to follow plate
+            stackedFoodItems.forEach((item, index) => {
+                item.x = plate.x;
+                let overlap = item.displayHeight * STACKING_OVERLAP_FACTOR;
+                item.y = plate.y - 20 - (index * overlap);
+            });
+
+            if (Phaser.Input.Keyboard.JustDown(spaceBar) && stackedFoodItems.length > 0) {
+                processServe.call(this);
+            }
+        }
+    }
+
+    function spawnFood() {
+        let x = Phaser.Math.Between(100, 1700);
+        let foodType = Phaser.Utils.Array.GetRandom(playerData.unlocked_foods);
+        let food = foods.create(x, -50, foodType).setScale(0.3);
+        food.body.setVelocityY(Phaser.Math.Between(200, 400));
+        food.foodType = foodType;
+    }
+
+    function updatePatienceBar() {
+        patienceBar.clear();
+        patienceBar.fillStyle(0x888888);
+        patienceBar.fillRect(currentCustomer.x - 50, currentCustomer.y - 100, 100, 10);
+        
+        let color = currentCustomer.patience > 50 ? 0x00ff00 : (currentCustomer.patience > 25 ? 0xffff00 : 0xff0000);
+        patienceBar.fillStyle(color);
+        patienceBar.fillRect(currentCustomer.x - 50, currentCustomer.y - 100, currentCustomer.patience, 10);
+    }
+
+    function processServe() {
+        let servedTypes = stackedFoodItems.map(f => f.foodType);
+        let isCorrect = JSON.stringify(servedTypes) === JSON.stringify(currentOrder);
+
+        if (isCorrect) {
+            playerData.coins += (currentOrder.length * 10);
+            showFeedback.call(this, "Perfect Match! +" + (currentOrder.length * 10) + " coins");
+        } else {
+            playerData.wrong_orders++;
+            showFeedback.call(this, "Wrong Order! Strike " + playerData.wrong_orders);
+        }
+    }
+
+    function showFeedback(msg) {
+        state = 'FEEDBACK';
+        foods.clear(true, true);
+        stackedFoodItems = [];
+        
+        let overlay = this.add.rectangle(900, 450, 1800, 900, 0x000000, 0.7);
+        let txt = this.add.text(900, 450, msg + "\n\nPress SPACE to Continue", { fontSize: '60px', fill: '#fff', align: 'center' }).setOrigin(0.5);
+        
+        this.input.keyboard.once('keydown-SPACE', () => {
+            if (playerData.wrong_orders >= 3) {
+                location.reload(); // Simple reset for Game Over
+            } else {
+                startRound.call(this);
+            }
+        });
+    }
+
+    function handleFail(reason) {
+        playerData.wrong_orders++;
+        showFeedback.call(this, reason + " Strike " + playerData.wrong_orders);
+    }
+</script>
+
+<div id="game-container"></div>
+</body>
+</html>
