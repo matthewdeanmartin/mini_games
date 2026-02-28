@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pet Game (Emoji Edition)</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121a24;
+      --panel2:#0f1620;
+      --text:#e8eef6;
+      --muted:#9fb0c5;
+      --accent:#4aa3ff;
+      --good:#35d07f;
+      --warn:#f2b94b;
+      --bad:#ff5d5d;
+      --border:rgba(255,255,255,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 30% 0%, #11243b 0%, var(--bg) 55%);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .app{
+      width:min(980px, 100%);
+      display:grid;
+      gap:12px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    header .title{
+      font-weight:700;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    header .title .logo{font-size:20px}
+    header .keys{
+      color:var(--muted);
+      font-size:13px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .panel{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      overflow:hidden;
+    }
+    .panel .inner{ padding:14px; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .col{ flex:1 1 320px; }
+    .muted{ color:var(--muted); }
+    .btnbar{ display:flex; flex-wrap:wrap; gap:8px; }
+    button{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+      transition:transform .05s ease, background .15s ease, opacity .15s ease;
+      user-select:none;
+      font-weight:600;
+    }
+    button:hover{ background:rgba(255,255,255,.10); }
+    button:active{ transform:translateY(1px); }
+    button.primary{ border-color:rgba(74,163,255,.45); background:rgba(74,163,255,.16); }
+    button.success{ border-color:rgba(53,208,127,.45); background:rgba(53,208,127,.14); }
+    button.warning{ border-color:rgba(242,185,75,.45); background:rgba(242,185,75,.14); }
+    button.danger{ border-color:rgba(255,93,93,.45); background:rgba(255,93,93,.12); }
+    button:disabled{ opacity:.45; cursor:not-allowed; }
+    .progressWrap{ margin-top:8px; }
+    .barLabel{ font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    .progress{
+      height:14px;
+      width:100%;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+    .fill{
+      height:100%;
+      width:50%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(74,163,255,.9), rgba(74,163,255,.55));
+      transition:width .25s ease;
+    }
+    .fill.sleep{ background:linear-gradient(90deg, rgba(242,185,75,.95), rgba(242,185,75,.55)); }
+    .fill.happy{ background:linear-gradient(90deg, rgba(53,208,127,.95), rgba(53,208,127,.55)); }
+    .roomBox{
+      border:1px solid rgba(74,163,255,.35);
+      background:rgba(10,16,24,.55);
+      border-radius:16px;
+      padding:12px;
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .ascii{
+      white-space:pre;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+      font-size:14px;
+      line-height:1.25;
+      color:#d9e6f7;
+    }
+    .screenTitle{
+      font-weight:800;
+      font-size:16px;
+      margin:0 0 6px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .screenNote{ color:var(--muted); font-size:13px; margin:0 0 12px; }
+    .list{
+      white-space:pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+      background:rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      padding:10px;
+      margin-top:10px;
+    }
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(18,26,36,.92);
+      border:1px solid rgba(255,255,255,.14);
+      padding:10px 12px;
+      border-radius:12px;
+      display:none;
+      gap:10px;
+      align-items:flex-start;
+      max-width:min(640px, calc(100% - 32px));
+      box-shadow:0 10px 30px rgba(0,0,0,.4);
+    }
+    .toast.show{ display:flex; }
+    .toast .icon{ font-size:18px; line-height:1; }
+    .toast .msg{ font-size:14px; }
+    .modalBackdrop{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .modalBackdrop.show{ display:flex; }
+    .modal{
+      width:min(760px, 100%);
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg, rgba(18,26,36,.95), rgba(13,19,28,.95));
+      overflow:hidden;
+    }
+    .modal .inner{ padding:16px; }
+    .modal .modalTitle{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-bottom:8px;
+    }
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .gridPets{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width: 640px){
+      .gridPets{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    footer{
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+      padding:6px 0 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title"><span class="logo">🐾</span> <span>Pet Game (Emoji Edition)</span></div>
+      <div class="keys">
+        <span class="pill">Keys: <b>P</b> Pause/Resume</span>
+        <span class="pill">Goal: keep hunger & sleep above 10%</span>
+      </div>
+    </header>
+
+    <div class="panel">
+      <div class="inner" id="main"></div>
+    </div>
+
+    <footer>
+      Emoji art mode. Timers match the TUI: hunger -1/60s, sleep -1/120s (awake), sleep +1/30s (sleeping), age +1/60s. Play costs -2% sleep.
+    </footer>
+  </div>
+
+  <div class="toast" id="toast">
+    <div class="icon" id="toastIcon">ℹ️</div>
+    <div class="msg" id="toastMsg"></div>
+  </div>
+
+  <div class="modalBackdrop" id="modal">
+    <div class="modal">
+      <div class="inner" id="modalInner"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ----------------------------
+  // Helpers
+  // ----------------------------
+  const clampPct = (v) => Math.max(0, Math.min(100, v));
+  const randChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  // ----------------------------
+  // Game Data
+  // ----------------------------
+  const PETS = ["snake","dog","cat","spider","bird","fish"];
+  const GENDERS = ["Male","Female","Non-binary"];
+
+  // (name, cost, hunger_gain)
+  const FOODS = [
+    ["Kibble", 5, 12],
+    ["Treats", 5, 8],
+    ["Fish Bits", 10, 22],
+    ["Premium Meal", 10, 18],
+  ];
+
+  const TOY_CATALOG = [
+    { slug:"ball", name:"Ball", cost:15, coin_reward:3, happiness_reward:2 },
+    { slug:"rope", name:"Rope", cost:35, coin_reward:6, happiness_reward:3 },
+    { slug:"laser_pointer", name:"Laser Pointer", cost:70, coin_reward:10, happiness_reward:4 },
+    { slug:"training_clicker", name:"Training Clicker", cost:120, coin_reward:15, happiness_reward:5 },
+    { slug:"agility_set", name:"Agility Set", cost:200, coin_reward:22, happiness_reward:6 },
+  ];
+
+  const EGG_COST_START = 50;
+
+  // Emoji "art"
+  const PET_EMOJI = {
+    snake:"🐍",
+    dog:"🐶",
+    cat:"🐱",
+    spider:"🕷️",
+    bird:"🐦",
+    fish:"🐟",
+  };
+
+  // ----------------------------
+  // State
+  // ----------------------------
+  const gs = {
+    pet: null,
+    gender: randChoice(GENDERS),
+    hunger: 80,
+    sleep: 85,
+    happiness: 60,
+    coins: 30,
+    toys_owned: [], // store slugs
+    pets_owned_total: 1,
+    eggs_owned: 0,
+    age_minutes: 0,
+    sleeping: false,
+    paused: false,
+  };
+
+  const resetForNewPet = (pet) => {
+    gs.pet = pet;
+    gs.gender = randChoice(GENDERS);
+    gs.hunger = 80;
+    gs.sleep = 85;
+    gs.happiness = 60;
+    gs.coins = 30;
+    gs.toys_owned = [];
+    gs.age_minutes = 0;
+    gs.sleeping = false;
+    gs.paused = false;
+  };
+
+  // ----------------------------
+  // UI Wiring
+  // ----------------------------
+  const main = document.getElementById("main");
+  const modal = document.getElementById("modal");
+  const modalInner = document.getElementById("modalInner");
+
+  const toast = document.getElementById("toast");
+  const toastIcon = document.getElementById("toastIcon");
+  const toastMsg = document.getElementById("toastMsg");
+  let toastTimer = null;
+
+  function notify(msg, severity="info"){
+    const map = {
+      info: "ℹ️",
+      success: "✅",
+      warning: "⚠️",
+      danger: "🛑"
+    };
+    toastIcon.textContent = map[severity] ?? "ℹ️";
+    toastMsg.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+
+  function openModal(html){
+    modalInner.innerHTML = html;
+    modal.classList.add("show");
+  }
+  function closeModal(){
+    modal.classList.remove("show");
+    modalInner.innerHTML = "";
+  }
+  modal.addEventListener("click", (e) => {
+    if(e.target === modal) closeModal();
+  });
+
+  // ----------------------------
+  // Game Logic (ported)
+  // ----------------------------
+  function nextEggCost(){
+    return EGG_COST_START + (gs.pets_owned_total - 1) * 25;
+  }
+
+  function bestToy(){
+    if(gs.toys_owned.length === 0) return null;
+    const owned = TOY_CATALOG.filter(t => gs.toys_owned.includes(t.slug));
+    owned.sort((a,b) => b.coin_reward - a.coin_reward);
+    return owned[0] ?? null;
+  }
+
+  function baseRewards(){
+    const toy = bestToy();
+    if(!toy) return { coins:2, happy:1 };
+    return { coins:toy.coin_reward, happy:toy.happiness_reward };
+  }
+
+  function checkLeaveCondition(){
+    if(gs.pet === null) return;
+    if(gs.hunger <= 10 || gs.sleep <= 10){
+      const parts = [];
+      if(gs.hunger <= 10) parts.push("I’m too hungry…");
+      if(gs.sleep <= 10) parts.push("I’m too tired…");
+      const reason = parts.join(" ") + " Goodbye!";
+
+      // End run (matches TUI behavior)
+      gs.pet = null;
+      gs.sleeping = false;
+      gs.paused = false;
+
+      openModal(renderGoodbye(reason));
+    }
+  }
+
+  function pauseGame(){
+    if(gs.pet === null) return;
+    if(gs.paused) return; // don't stack penalties
+    gs.hunger = clampPct(gs.hunger - 3);
+    gs.sleep = clampPct(gs.sleep - 3);
+    gs.happiness = clampPct(gs.happiness - 3);
+    gs.paused = true;
+    openModal(renderPause());
+    checkLeaveCondition();
+    render(); // reflect paused in header/room
+  }
+
+  function resumeGame(){
+    if(!gs.paused) return;
+    gs.paused = false;
+    closeModal();
+    render();
+  }
+
+  function restartAfterGoodbye(){
+    gs.eggs_owned += 1;
+    closeModal();
+    renderPetSelect();
+  }
+
+  // ----------------------------
+  // Timers (same pacing as Python)
+  // ----------------------------
+  // Hunger: -1 each 60s
+  setInterval(() => {
+    if(gs.pet === null || gs.paused) return;
+    gs.hunger = clampPct(gs.hunger - 1);
+    checkLeaveCondition();
+    render(); // keep it simple
+  }, 60_000);
+
+  // Sleep decay: -1 each 120s when not sleeping
+  setInterval(() => {
+    if(gs.pet === null || gs.paused) return;
+    if(!gs.sleeping){
+      gs.sleep = clampPct(gs.sleep - 1);
+    }
+    checkLeaveCondition();
+    render();
+  }, 120_000);
+
+  // Sleep regen: +1 each 30s when sleeping
+  setInterval(() => {
+    if(gs.pet === null || gs.paused) return;
+    if(gs.sleeping){
+      gs.sleep = clampPct(gs.sleep + 1);
+    }
+    render();
+  }, 30_000);
+
+  // Age: +1 minute each 60s
+  setInterval(() => {
+    if(gs.pet === null || gs.paused) return;
+    gs.age_minutes += 1;
+    render();
+  }, 60_000);
+
+  // ----------------------------
+  // Rendering (Screens)
+  // ----------------------------
+  function renderProgress(label, value, cls){
+    return `
+      <div class="barLabel">${label} <span class="muted">${value}%</span></div>
+      <div class="progress"><div class="fill ${cls||""}" style="width:${clampPct(value)}%"></div></div>
+    `;
+  }
+
+  function petOnRug(){
+    const pet = gs.pet;
+    const petName = pet ? pet[0].toUpperCase() + pet.slice(1) : "(none)";
+    const e = pet ? (PET_EMOJI[pet] || "🐾") : "🐾";
+    const mood = gs.paused ? "⏸ paused" : (gs.sleeping ? "💤 sleeping" : "🙂 awake");
+
+    return `
+<pre class="ascii">         🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶
+        🧶  ✨ Cozy Rug ✨   🧶
+       🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶🧶
+
+            ${e}  (${petName})
+            [${mood}]
+
+(Use the buttons below to move around.)</pre>
+    `;
+  }
+
+  function renderRoom(){
+    const pausedTag = gs.paused ? "  |  ⏸ PAUSED" : "";
+    return `
+      <div class="row">
+        <div class="col panel">
+          <div class="inner">
+            <div class="screenTitle">🏠 Room</div>
+            <div class="screenNote">
+              Pet: <b>${gs.pet[0].toUpperCase()+gs.pet.slice(1)}</b> • Coins: <b>${gs.coins}</b> • Toys: <b>${gs.toys_owned.length}</b> • Eggs: <b>${gs.eggs_owned}</b>${pausedTag}
+            </div>
+            <div class="progressWrap">
+              ${renderProgress("Hunger", gs.hunger, "")}
+              ${renderProgress("Sleep", gs.sleep, "sleep")}
+              ${renderProgress("Happiness", gs.happiness, "happy")}
+            </div>
+          </div>
+        </div>
+
+        <div class="col panel">
+          <div class="inner">
+            <div class="screenTitle">🧸 Pet Spot</div>
+            <div class="roomBox">${petOnRug()}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="inner">
+          <div class="btnbar">
+            <button id="go_kitchen">🍽️ Kitchen</button>
+            <button class="success" id="go_play">🎾 Play</button>
+            <button id="go_sleep">😴 Sleep</button>
+            <button id="go_stats">📊 Stats</button>
+            <button id="go_shop">🛒 Shop</button>
+            <button class="warning" id="go_pause">⏸️ Pause</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPetSelect(){
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">✨ Choose Your Pet</div>
+          <div class="screenNote">Pick one to start. You can buy eggs later to earn more pets.</div>
+          <div class="gridPets">
+            ${PETS.map(p => `
+              <button class="primary" data-pet="${p}">
+                ${PET_EMOJI[p] || "🐾"} ${p[0].toUpperCase()+p.slice(1)}
+              </button>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+    main.querySelectorAll("button[data-pet]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const pet = btn.getAttribute("data-pet");
+        resetForNewPet(pet);
+        render();
+      });
+    });
+  }
+
+  function renderKitchen(){
+    const fridgeLines = [
+      "🥶 Fridge Items:",
+      ...FOODS.map(([name,cost,gain]) => `  • ${name} — ${cost} coins (+${gain}% hunger)`),
+      ""
+    ].join("\n");
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">🍽️ Kitchen</div>
+          <div class="screenNote">Buy food from the fridge to raise hunger.</div>
+          <div class="muted">Coins: <b>${gs.coins}</b> • Hunger: <b>${gs.hunger}%</b></div>
+
+          <div class="list">${fridgeLines}</div>
+
+          <div class="btnbar" style="margin-top:10px">
+            ${FOODS.map((f,i) => {
+              const [name,cost,gain] = f;
+              return `<button class="success" data-food="${i}">🧃 Buy ${name} (${cost}) +${gain}%</button>`;
+            }).join("")}
+          </div>
+
+          <div class="btnbar" style="margin-top:12px">
+            <button id="back_room">⬅️ Back to Room</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    main.querySelectorAll("button[data-food]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-food"));
+        const [name,cost,gain] = FOODS[idx];
+        if(gs.coins < cost){
+          notify("Not enough coins!", "warning");
+          return;
+        }
+        gs.coins -= cost;
+        gs.hunger = clampPct(gs.hunger + gain);
+        notify(`You bought ${name}. Yum!`, "success");
+        checkLeaveCondition();
+        renderKitchen(); // refresh this screen
+      });
+    });
+
+    document.getElementById("back_room").addEventListener("click", render);
+  }
+
+  function renderPlay(){
+    const toy = bestToy();
+    const toyName = toy ? toy.name : "None";
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">🎾 Play Time</div>
+          <div class="screenNote">Throw toys and train your pet to earn coins and boost happiness. Each play action costs <b>2% sleep</b>.</div>
+
+          <div class="muted">
+            Coins: <b>${gs.coins}</b> • Happiness: <b>${gs.happiness}%</b> • Sleep: <b>${gs.sleep}%</b> • Best Toy: <b>${toyName}</b>
+          </div>
+
+          <div class="btnbar" style="margin-top:12px">
+            <button class="success" id="throw">🪃 Throw Toy</button>
+            <button class="primary" id="train">📣 Train</button>
+            <button id="back_room">⬅️ Back</button>
+          </div>
+
+          <div class="list" id="log">🐾 What will you do?</div>
+        </div>
+      </div>
+    `;
+
+    function applyPlaySleepCost(){
+      gs.sleep = clampPct(gs.sleep - 2);
+    }
+
+    document.getElementById("throw").addEventListener("click", () => {
+      const { coins, happy } = baseRewards();
+      const gainedC = coins + 1;
+      const gainedH = Math.max(1, happy);
+      gs.coins += gainedC;
+      gs.happiness = clampPct(gs.happiness + gainedH);
+      applyPlaySleepCost();
+      document.getElementById("log").textContent =
+        `🪃 You threw a toy! +${gainedC} coins, +${gainedH}% happiness, -2% sleep.`;
+      checkLeaveCondition();
+      renderPlay();
+    });
+
+    document.getElementById("train").addEventListener("click", () => {
+      const { coins, happy } = baseRewards();
+      const gainedC = Math.max(1, coins - 1);
+      const gainedH = happy + 1;
+      gs.coins += gainedC;
+      gs.happiness = clampPct(gs.happiness + gainedH);
+      applyPlaySleepCost();
+      document.getElementById("log").textContent =
+        `📣 You trained your pet! +${gainedC} coins, +${gainedH}% happiness, -2% sleep.`;
+      checkLeaveCondition();
+      renderPlay();
+    });
+
+    document.getElementById("back_room").addEventListener("click", render);
+  }
+
+  function renderSleep(){
+    const art = gs.sleeping
+      ? "   zZzZz...\n  ( -_-)💤\n  🧺 pet snoozing on the rug"
+      : "  (o_o)🙂\n  🧺 pet is awake";
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">😴 Sleep</div>
+          <div class="screenNote">While sleeping, sleep increases by <b>1</b> every <b>30 seconds</b>.</div>
+
+          <div class="muted">Sleep: <b>${gs.sleep}%</b> • Sleeping: <b>${gs.sleeping ? "Yes" : "No"}</b></div>
+
+          <div class="btnbar" style="margin-top:12px">
+            <button class="success" id="start_sleep">🛏️ Start Sleeping</button>
+            <button class="warning" id="wake_up">⏰ Wake Up</button>
+            <button id="back_room">⬅️ Back</button>
+          </div>
+
+          <div class="list">${art}</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("start_sleep").addEventListener("click", () => {
+      gs.sleeping = true;
+      notify("Your pet fell asleep.", "success");
+      checkLeaveCondition();
+      renderSleep();
+    });
+
+    document.getElementById("wake_up").addEventListener("click", () => {
+      gs.sleeping = false;
+      notify("Your pet woke up.", "info");
+      checkLeaveCondition();
+      renderSleep();
+    });
+
+    document.getElementById("back_room").addEventListener("click", render);
+  }
+
+  function renderStats(){
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">📊 Stats</div>
+          <div class="list">
+Pet: ${gs.pet ? gs.pet[0].toUpperCase()+gs.pet.slice(1) : "(none)"}
+Gender: ${gs.gender}
+Age: ${gs.age_minutes} minute(s)
+Hunger: ${gs.hunger}%
+Sleep: ${gs.sleep}%
+Happiness: ${gs.happiness}%
+Coins: ${gs.coins}
+Toys owned: ${gs.toys_owned.length}
+Other pets owned (total): ${Math.max(0, gs.pets_owned_total - 1)}
+Eggs owned: ${gs.eggs_owned}
+Paused: ${gs.paused ? "Yes" : "No"}
+          </div>
+
+          <div class="btnbar" style="margin-top:12px">
+            <button id="back_room">⬅️ Back</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById("back_room").addEventListener("click", render);
+  }
+
+  function renderShop(){
+    const eggCost = nextEggCost();
+    const owned = new Set(gs.toys_owned);
+
+    const lines = [
+      "🧸 Toys:",
+      ...TOY_CATALOG.map(t => owned.has(t.slug)
+        ? `  ✅ ${t.name} (owned) — +${t.coin_reward} coins, +${t.happiness_reward}% happy`
+        : `  🛒 ${t.name} — cost ${t.cost} — +${t.coin_reward} coins, +${t.happiness_reward}% happy`
+      ),
+      "",
+      `🥚 Egg: cost ${eggCost}`
+    ].join("\n");
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="inner">
+          <div class="screenTitle">🛒 Shop</div>
+          <div class="screenNote">Buy toys (better play rewards) or eggs (more pets).</div>
+          <div class="muted">Coins: <b>${gs.coins}</b> • Toys: <b>${gs.toys_owned.length}</b> • Eggs: <b>${gs.eggs_owned}</b></div>
+
+          <div class="list">${lines}</div>
+
+          <div class="btnbar" style="margin-top:12px">
+            ${TOY_CATALOG.map(t => `
+              <button class="success" data-toy="${t.slug}" ${owned.has(t.slug) ? "disabled" : ""}>
+                🧸 Buy ${t.name} (${t.cost})
+              </button>
+            `).join("")}
+          </div>
+
+          <div class="btnbar" style="margin-top:10px">
+            <button class="primary" id="buy_egg">🥚 Buy Egg (${eggCost})</button>
+            <button id="back_room">⬅️ Back</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    main.querySelectorAll("button[data-toy]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const slug = btn.getAttribute("data-toy");
+        const toy = TOY_CATALOG.find(t => t.slug === slug);
+        if(!toy) return;
+        if(owned.has(toy.slug)){
+          notify("You already own that toy.", "warning");
+          return;
+        }
+        if(gs.coins < toy.cost){
+          notify("Not enough coins.", "warning");
+          return;
+        }
+        gs.coins -= toy.cost;
+        gs.toys_owned.push(toy.slug);
+        notify(`Bought ${toy.name}! Play rewards increased.`, "success");
+        renderShop();
+      });
+    });
+
+    document.getElementById("buy_egg").addEventListener("click", () => {
+      const cost = nextEggCost();
+      if(gs.coins < cost){
+        notify("Not enough coins for an egg.", "warning");
+        return;
+      }
+      gs.coins -= cost;
+      gs.eggs_owned += 1;
+      gs.pets_owned_total += 1;
+      notify("You bought an egg! (Tracked in Stats.)", "success");
+      renderShop();
+    });
+
+    document.getElementById("back_room").addEventListener("click", render);
+  }
+
+  function renderPause(){
+    return `
+      <div class="modalTitle">
+        <div class="screenTitle">⏸️ Paused</div>
+        <span class="pill">Timers stopped</span>
+      </div>
+      <div class="screenNote">Pause penalty applied: Hunger -3, Sleep -3, Happiness -3.</div>
+      <div class="list">Now:
+Hunger ${gs.hunger}% | Sleep ${gs.sleep}% | Happiness ${gs.happiness}%</div>
+      <div class="btnbar" style="margin-top:12px">
+        <button class="success" id="resumeBtn">▶️ Resume</button>
+      </div>
+    `;
+  }
+
+  function renderGoodbye(reason){
+    return `
+      <div class="modalTitle">
+        <div class="screenTitle">🧳 Goodbye…</div>
+        <span class="pill">Run ended</span>
+      </div>
+      <div class="list">${reason}
+
+🥚 Your pet left an egg behind.
+Everything will restart.</div>
+      <div class="btnbar" style="margin-top:12px">
+        <button class="primary" id="restartBtn">🔁 Restart</button>
+      </div>
+    `;
+  }
+
+  function render(){
+    if(gs.pet === null){
+      renderPetSelect();
+      return;
+    }
+
+    main.innerHTML = renderRoom();
+
+    document.getElementById("go_kitchen").addEventListener("click", renderKitchen);
+    document.getElementById("go_play").addEventListener("click", renderPlay);
+    document.getElementById("go_sleep").addEventListener("click", renderSleep);
+    document.getElementById("go_stats").addEventListener("click", renderStats);
+    document.getElementById("go_shop").addEventListener("click", renderShop);
+    document.getElementById("go_pause").addEventListener("click", pauseGame);
+  }
+
+  // Modal button wiring after openModal()
+  const modalObserver = new MutationObserver(() => {
+    const resumeBtn = document.getElementById("resumeBtn");
+    if(resumeBtn) resumeBtn.addEventListener("click", resumeGame);
+
+    const restartBtn = document.getElementById("restartBtn");
+    if(restartBtn) restartBtn.addEventListener("click", restartAfterGoodbye);
+  });
+  modalObserver.observe(modalInner, { childList:true, subtree:true });
+
+  // Keyboard: P toggles pause
+  window.addEventListener("keydown", (e) => {
+    if(e.key.toLowerCase() === "p"){
+      if(gs.pet === null) return;
+      if(gs.paused) resumeGame();
+      else pauseGame();
+    }
+  });
+
+  // Start
+  renderPetSelect();
+})();
+</script>
+</body>
+</html>
