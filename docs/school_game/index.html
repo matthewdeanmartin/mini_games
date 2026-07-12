@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Late Again!</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏫</text></svg>" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #2c3e50;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace;
+      touch-action: none;
+    }
+    #wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      flex-direction: column;
+      gap: 8px;
+    }
+    canvas {
+      background: #000;
+      border: 4px solid #f1c40f;
+      border-radius: 10px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      image-rendering: auto;
+    }
+    #back {
+      color: #ecf0f1;
+      font-size: 13px;
+      text-decoration: none;
+      opacity: 0.8;
+    }
+    #back:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <canvas id="game" width="960" height="540"></canvas>
+    <a id="back" href="../index.html">⬅ back to the arcade</a>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
