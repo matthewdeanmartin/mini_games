@@ -1,0 +1,12 @@
+{
+    "coins": 0,
+    "unlocked_foods": [
+        "toast",
+        "burger",
+        "egg",
+        "sushi",
+        "pizza"
+    ],
+    "kitchen_level": 1,
+    "wrong_orders": 0
+}
